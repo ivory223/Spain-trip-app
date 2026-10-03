@@ -1,0 +1,11 @@
+{
+ "id":"/", "name":"西班牙慢游 · Our Spain Journal", "short_name":"西班牙慢游",
+ "description":"一家三口的西班牙随身行程 · 22–29 October 2026",
+ "lang":"zh-CN", "start_url":"/", "scope":"/", "display":"standalone",
+ "background_color":"#f7f5ef", "theme_color":"#f7f5ef",
+ "icons":[
+  {"src":"/icons/icon-192.png","sizes":"192x192","type":"image/png","purpose":"any"},
+  {"src":"/icons/icon-512.png","sizes":"512x512","type":"image/png","purpose":"any"},
+  {"src":"/icons/maskable-512.png","sizes":"512x512","type":"image/png","purpose":"maskable"}
+ ]
+}
