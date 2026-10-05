@@ -98,3 +98,18 @@ html[lang="en"] .detail-actions,html[lang="en"] .booking-actions{flex-wrap:wrap}
 .timeline-row{scroll-margin-top:130px}.timeline-row.map-focused .activity-card{outline:2px solid #b38b55;outline-offset:3px}
 @media(max-width:760px){.map-mode main{padding-left:12px;padding-right:12px}.map-mode .date-strip{margin:0 -12px;padding:6px 12px;gap:5px}.map-mode .date{min-width:48px;min-height:66px}.map-mode .date strong{font-size:22px}.map-mode .date small,.map-mode .date span{font-size:10px}.route-heading{padding:12px 4px}.route-heading h2{font-size:21px}.route-count{font-size:11px}.route-frame{border-radius:16px}.route-sheet{left:0;transform:none;padding:22px 20px calc(22px + env(safe-area-inset-bottom))}.route-sheet .sheet-heading{top:-22px}.route-list-heading{padding:0 4px}.route-stop>button{padding:14px 4px}.map-caption{font-size:10px;gap:4px 9px}.nearby-toggle,.map-locate{font-size:12px}}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+
+/* Accommodation stays visible without adding sightseeing sequence numbers. */
+.map-family-controls{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:0 2px 12px;font-size:12px}
+.map-family-controls button,.map-family-controls a{display:flex;align-items:center;justify-content:center;gap:5px;min-height:44px;border:1px solid var(--line);border-radius:12px;padding:8px 12px}
+.map-family-controls button[aria-pressed=true]{background:#e6eddf;border-color:#9fac93}
+.map-family-controls .home-return{background:var(--green);color:var(--paper)}
+.route-home-row{display:flex;align-items:center;gap:10px;padding:10px 12px;margin:8px 0 12px;background:#eee9de;border:1px solid #d8cbb5;border-radius:14px}
+.route-home-row>button{display:flex;gap:10px;align-items:center;text-align:left;min-width:0;flex:1}
+.route-home-row svg{flex-shrink:0;color:#94673e}.route-home-row span{display:grid;gap:3px;min-width:0}.route-home-row strong{font-size:13px;overflow-wrap:anywhere}.route-home-row small{font-size:11px;line-height:1.5;color:var(--muted)}
+.route-home-row>a{flex-shrink:0;max-width:75px;font-size:12px;min-height:44px;display:flex;align-items:center;color:var(--green);text-align:center}
+.route-canvas .home-tooltip{background:#fffdf2;color:#6d4f32;border:1px solid #d8cbb5;border-radius:6px;box-shadow:0 1px 4px #0002;font:10px var(--sans);padding:3px 6px}
+.context-transport{width:44px;height:44px;display:grid;place-items:center}.context-transport span{display:grid;place-items:center;width:30px;height:30px;border:2px solid white;border-radius:8px;background:#4f7183;color:white;font-size:22px}
+.route-pin.family .pin-face{outline:2px solid #bccb99;outline-offset:2px}
+.stop-priority,.stop-family{font-size:10px;color:#7b855d;line-height:1.5}.stop-family:empty{display:none}
+.route-sheet-address{font-size:14px;line-height:1.7;margin:12px 0;overflow-wrap:anywhere}.home-google-link{display:block;text-align:center;padding:14px;min-height:44px;font-size:13px}

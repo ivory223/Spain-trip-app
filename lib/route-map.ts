@@ -3,32 +3,35 @@ import { places as originalPlaces } from '@/data/places';
 import { placeQuery } from './itinerary';
 import type { ItineraryItem, LocalState, Place, Progress } from './types';
 export type Point = [number,number];
-export interface RouteStop {item:ItineraryItem;number:number;point?:Point;area:boolean;progress?:Progress}
+export interface RouteStop {item:ItineraryItem;number:number;point?:Point;area:boolean;progress?:Progress;arrival?:Place;arrivalPoint?:Point}
 export function validPoint(value:unknown):value is Point {
  return Array.isArray(value)&&value.length===2&&value.every(n=>typeof n==='number'&&Number.isFinite(n))&&Math.abs(value[0])<=90&&Math.abs(value[1])<=180;
 }
 export function placePoint(place:Place):Point|undefined {
  const original=originalPlaces.find(p=>p.id===place.id);
  // An edited address must never retain a pin at the old location.
- if(!original||place.address!==original.address||place.googleMapsQuery!==original.googleMapsQuery)return;
- const point=placeCoordinates[place.id]?.point;return validPoint(point)?point:undefined;
+ if(original&&(place.address!==original.address||place.googleMapsQuery!==original.googleMapsQuery))return;
+ const point=[place.latitude,place.longitude];return validPoint(point)?point:undefined;
 }
 export function routeStops(items:ItineraryItem[],places:Place[],state:LocalState):RouteStop[] {
  return items.map((item,index)=>{
   const place=places.find(p=>p.id===item.placeId);
   const point=place&&(!item.address||item.address===place.address)&&(!item.googleMapsQuery||item.googleMapsQuery===placeQuery(place))?placePoint(place):undefined;
-  return {item,number:index+1,point,area:!!placeCoordinates[place?.id||'']?.area,progress:state.progress[item.id]};
+  const arrival=places.find(p=>p.id===item.arrivalPlaceId);
+  return {item,number:index+1,point,arrival,arrivalPoint:arrival&&placePoint(arrival),area:!!placeCoordinates[place?.id||'']?.area,progress:state.progress[item.id]};
  });
 }
-export function routeSegments(stops:RouteStop[]) {
+export function routeSegments(stops:RouteStop[],departure?:Place) {
  const segments:{from:RouteStop;to:RouteStop;gap:boolean}[]=[];
  let previous:RouteStop|undefined,gap=false;
  for(const stop of stops){
   if(stop.progress==='skipped')continue;
   if(!stop.point){gap=true;continue;}
   if(previous)segments.push({from:previous,to:stop,gap});
-  previous=stop;gap=false;
+  if(stop.arrivalPoint){const arrival={...stop,point:stop.arrivalPoint};segments.push({from:stop,to:arrival,gap:false});previous=arrival;}else previous=stop;gap=false;
  }
+ const origin=departure&&placePoint(departure),first=stops.find(s=>s.point&&s.progress!=='skipped');
+ if(origin&&first&&distanceMeters(origin,first.point!)>1)segments.unshift({from:{...first,point:origin},to:first,gap:stops.slice(0,stops.indexOf(first)).some(s=>!s.point&&s.progress!=='skipped')});
  return segments;
 }
 export function distanceMeters(a:Point,b:Point):number {

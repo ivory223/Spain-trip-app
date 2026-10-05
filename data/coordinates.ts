@@ -208,5 +208,19 @@ export const placeCoordinates:Record<string,{point:Point;source:string;area?:boo
     ],
     "source": "https://www.openstreetmap.org/way/294085186",
     "area": true
+  },
+  "apartment": {
+    "point": [
+      41.39804,
+      2.1689552
+    ],
+    "source": "https://www.openstreetmap.org/node/6173160220"
+  },
+  "atocha": {
+    "point": [
+      40.4046611,
+      -3.6889703
+    ],
+    "source": "https://www.openstreetmap.org/way/733993037"
   }
 };

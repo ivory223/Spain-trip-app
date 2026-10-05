@@ -23,7 +23,15 @@ export function parseState(raw:string): LocalState {
  if (Object.values(value.progress as Record<string,unknown>).some(v=>v!=='completed'&&v!=='skipped')) throw new Error('进度数据无法读取');
  if (Object.values(value.placeNotes as Record<string,unknown>).some(v=>typeof v!=='string')) throw new Error('笔记数据无法读取');
  if (typeof value.remiMode!=='boolean') throw new Error('偏好数据无法读取');
- return {...base,...value} as LocalState;
+ const restored={...base,...value} as LocalState;
+ // Remove only known obsolete seed text from old form saves; preserve personal edits and notes.
+ for(const edit of Object.values(restored.itemEdits)){
+  if(edit.googleMapsQuery==='Central Family Apartment 31 Barcelona')delete edit.googleMapsQuery;
+  if(edit.description==='从 Hilton 退房。提前和公寓确认地址、寄存行李、入住时间和取钥匙。')delete edit.description;
+ }
+ const apartment=restored.bookingEdits['hotel-apartment'];
+ if(apartment?.notes==='Barcelona，3 晚。准确地址、入住时间、门禁/取钥匙方式待补充。')delete apartment.notes;
+ return restored;
 }
 export function localClock(now:Date, timeZone='Europe/Madrid') {
  const parts = new Intl.DateTimeFormat('en-CA',{timeZone,year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).formatToParts(now);
@@ -43,7 +51,7 @@ export function mergePlaces(base:Place[],state:LocalState,bookings:Booking[]):Pl
  return [...base,...state.addedPlaces].map(place=>{
   const booking=bookings.find(b=>b.type==='hotels'&&b.placeId===place.id);
   const address=booking&&state.bookingEdits[booking.id]?.address;
-  return address?{...place,address,googleMapsQuery:`${place.name} ${address}`,needsVerification:false}:place;
+  return address&&address!==place.address?{...place,address,googleMapsQuery:`${place.name} ${address}`,latitude:undefined,longitude:undefined,needsVerification:false}:place;
  });
 }
 export function safeUrl(url?:string) {
@@ -100,4 +108,12 @@ export function reorder(state:LocalState,items:ItineraryItem[],id:string,directi
  if(index<0 || next<0 || next>=items.length) return state;
  const order=items.map(item=>item.id); [order[index],order[next]]=[order[next],order[index]];
  return {...state,order:{...state.order,[items[index].date]:order}};
+}
+
+// Check-in is inclusive, checkout is exclusive; the previous night supplies the departure base.
+export function accommodationForDate(date:string,bookings:Booking[],places:Place[]) {
+ const stays=bookings.filter(b=>b.type==='hotels'&&b.placeId&&b.endDate);
+ const tonight=stays.find(b=>b.date<=date&&date<b.endDate!);
+ const previous=stays.find(b=>b.date<date&&date<=b.endDate!);
+ return {home:places.find(p=>p.id===(tonight||previous)?.placeId),departure:places.find(p=>p.id===previous?.placeId)};
 }

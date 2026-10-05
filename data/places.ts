@@ -1,8 +1,9 @@
+import { placeCoordinates } from './coordinates';
 import type { Category, Place } from '@/lib/types';
-export const categoryLabels: Record<Category, string> = { attractions: '景点', food: '餐厅', shopping: '购物', vintage: 'Vintage', kids: '儿童', markets: '市场', hotels: '酒店', transport: '交通' };
-export const places: Place[] = [
+export const categoryLabels: Record<Category, string> = { attractions: '景点', food: '餐厅', shopping: '购物', vintage: 'Vintage', kids: '儿童', markets: '市场', hotels: '住宿', transport: '交通' };
+const seedPlaces: Place[] = [
   { id:'hilton-bcn', name:'Hilton Barcelona', nameZh:'巴塞罗那希尔顿', category:'hotels', neighborhood:'Les Corts', priority:'must', indoor:true, childFriendly:true, strollerFriendly:true, notes:'10/23 入住，10/25 退房，共 2 晚。提前入住以酒店确认为准。', googleMapsQuery:'Hilton Barcelona Avenida Diagonal', walkingContext:'抵达日的休息据点' },
-  { id:'apartment', name:'Central Family Apartment 31', nameZh:'家庭公寓', category:'hotels', neighborhood:'Barcelona · 地址待补', priority:'must', childFriendly:true, indoor:true, needsVerification:true, notes:'10/25–28，3 晚。请从订单补充准确地址与取钥匙方式；名称搜索可能不准确。', googleMapsQuery:'Central Family Apartment 31 Barcelona' },
+  { id:'apartment', name:'Central Family Apartment 31', nameZh:'家庭公寓', category:'hotels', neighborhood:'Eixample · Barcelona', address:'Carrer de Bailèn, 125, 08009 Barcelona, Catalunya, Spain', priority:'must', childFriendly:true, indoor:true, notes:'10/25–28，3 晚，已预订。入住时间、行李寄存和取钥匙方式待确认。', googleMapsQuery:'Carrer de Bailèn, 125, 08009 Barcelona, Spain' },
   { id:'hilton-mad', name:'Hilton Madrid Airport', nameZh:'马德里机场希尔顿', category:'hotels', neighborhood:'Madrid · Airport', priority:'must', childFriendly:true, strollerFriendly:true, indoor:true, notes:'10/28 入住，10/29 退房。前往机场方式和班次向酒店确认。', walkingContext:'Atocha 抵达后打车前往' },
   { id:'ewr', name:'Newark Liberty International Airport', nameZh:'纽瓦克机场 EWR', category:'transport', neighborhood:'Newark', priority:'must', googleMapsQuery:'Newark Liberty International Airport' },
   { id:'bcn', name:'Barcelona El Prat Airport', nameZh:'巴塞罗那机场 BCN', category:'transport', neighborhood:'El Prat', priority:'must', walkingContext:'落地后打车，同行 3 大箱 + 推车；确认车型' },
@@ -42,6 +43,7 @@ export const places: Place[] = [
   { id:'paradeta', name:'La Paradeta Sants', category:'food', neighborhood:'Sants', priority:'recommended', indoor:true, childFriendly:true, walkingContext:'若从 Poblenou 来需跨城交通；累了改就近吃', notes:'海鲜晚餐候选；核对营业和排队情况。' },
   { id:'palo-alto', name:'Palo Alto Market', category:'markets', neighborhood:'Poblenou', priority:'optional', availability:'unavailable', notes:'UNAVAILABLE DURING TRIP。按用户现有信息，10/23–28 似乎没有市集；保留原因，不排入行程。' },
 ];
+export const places:Place[]=seedPlaces.map(place=>({...place,latitude:placeCoordinates[place.id]?.point[0],longitude:placeCoordinates[place.id]?.point[1]}));
 export const collections = [
   { title:'购物灵感', categories:['Barcelona independent designers','Vintage','Kids boutiques','Spanish brands'] },
   { title:'想吃什么', categories:['Paella','Seafood','Tapas','Chinese food','Coffee','Bakery','Market food'] },
