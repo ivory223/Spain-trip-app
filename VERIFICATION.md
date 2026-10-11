@@ -80,4 +80,4 @@
 - Rendered preview at 390 × 844 and 320 × 740 visibly shows exactly Trip, Map, Places, Shopping, More. At 320 px every tab lies inside the viewport; no horizontal document overflow.
 - Clicked and refreshed each primary route; URLs and active navigation remained correct. Shopping rendered the product list and More rendered all nine cards. Bookings is absent from the bottom navigation.
 - Clicked all nine More cards, confirmed page content and More as the active parent. Map loaded its interactive tiles and markers.
-- Online deployment verification is recorded separately after publishing.
+- Netlify public deployment at https://ivory-spain-trip.netlify.app rendered the new five tabs and More cards. Its injected badge initially overlapped the last tabs; a host-specific bottom offset keeps it above the navigation.
