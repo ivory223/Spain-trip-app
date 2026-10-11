@@ -113,3 +113,12 @@ html[lang="en"] .detail-actions,html[lang="en"] .booking-actions{flex-wrap:wrap}
 .route-pin.family .pin-face{outline:2px solid #bccb99;outline-offset:2px}
 .stop-priority,.stop-family{font-size:10px;color:#7b855d;line-height:1.5}.stop-family:empty{display:none}
 .route-sheet-address{font-size:14px;line-height:1.7;margin:12px 0;overflow-wrap:anywhere}.home-google-link{display:block;text-align:center;padding:14px;min-height:44px;font-size:13px}
+
+/* Saved places and products share the existing card and sheet layout. */
+.map-category-filter{margin-bottom:12px}.map-saved-list{border:1px solid var(--line);border-radius:14px;padding:12px 16px;margin:10px 0;font-size:13px}
+.map-saved-list summary{cursor:pointer;min-height:32px;padding-top:6px;color:var(--green)}.map-saved-list>button{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;min-height:48px;text-align:left;border-top:1px solid var(--line)}.map-saved-list small{color:var(--muted);flex-shrink:0}
+.linked-places{max-height:240px;overflow:auto;border:1px solid var(--line);border-radius:12px;padding:12px}.linked-places label{display:flex;align-items:center;gap:10px;min-height:44px}.linked-places input{width:18px;height:18px}.shopping-links{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}.shopping-links a{padding:8px 10px;background:#edf1e7;border-radius:8px;font-size:12px}.places-toolbar p{font-size:13px;line-height:1.6;color:var(--muted)}
+
+.places-sections{display:flex;gap:8px;margin:0 0 20px;padding:4px;background:#eee9de;border-radius:14px}.places-sections button{flex:1;min-height:44px;padding:8px 12px;border-radius:10px;font-size:14px}.places-sections button.active{background:var(--paper);color:var(--green);box-shadow:0 1px 4px #0001}.places-toolbar button[aria-pressed=true]{color:var(--green);background:#e6eddf;border-radius:8px}.place-actions{flex-wrap:wrap}
+
+.places-toolbar .outline-button{flex-shrink:0;white-space:nowrap}

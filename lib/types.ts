@@ -1,16 +1,17 @@
 export type Priority = 'must' | 'recommended' | 'optional';
 export type BookingStatus = 'booked' | 'need-to-book' | 'sold-out' | 'no-reservation' | 'tbd';
-export type Category = 'attractions' | 'food' | 'shopping' | 'vintage' | 'kids' | 'markets' | 'hotels' | 'transport';
+export type Category = 'attractions' | 'food' | 'shopping' | 'vintage' | 'kids' | 'markets' | 'grocery' | 'events' | 'hotels' | 'transport';
 export type PlanReason = 'rain' | 'tired' | 'late' | 'unavailable';
 export type Progress = 'completed' | 'skipped';
 export interface Traveler { id: string; name: string; type: 'adult' | 'child'; age?: number }
 export interface Trip { id: string; title: string; startDate: string; endDate: string; travelers: Traveler[]; luggage: string[] }
 export interface Place {
   id: string; name: string; nameZh?: string; category: Category; neighborhood: string;
-  address?: string; latitude?: number; longitude?: number; priority: Priority; notes?: string; walkingContext?: string;
+  address?: string; latitude?: number | null; longitude?: number | null; priority: Priority; notes?: string; walkingContext?: string;
   googleMapsQuery?: string; bookingUrl?: string; childFriendly?: boolean;
   strollerFriendly?: boolean; napFriendly?: boolean; indoor?: boolean;
   bathrooms?: string; freePlay?: boolean; tags?: string[];
+  city?: string; savedStatus?: 'saved' | 'wishlist'; openingHours?: string; bookingStatus?: BookingStatus; sourceUrl?: string;
   availability?: 'sold-out' | 'unavailable'; needsVerification?: boolean;
 }
 export interface ItineraryItem {
@@ -20,7 +21,7 @@ export interface ItineraryItem {
   bookingStatus: BookingStatus; priority: Priority; childFriendly?: boolean; strollerFriendly?: boolean;
   napFriendly?: boolean; indoor?: boolean; bathrooms?: string; freePlay?: boolean;
   demanding?: boolean; easy?: boolean; googleMapsQuery?: string; ticketUrl?: string; bookingUrl?: string;
-  confirmationNumber?: string; walkingContext?: string;
+  confirmationNumber?: string; walkingContext?: string; fixed?: boolean;
 }
 export interface PlanAlternative { id: string; title: string; description: string; placeId?: string; reasons: PlanReason[] }
 export interface TripDay {
@@ -34,8 +35,10 @@ export interface Booking {
   status: BookingStatus; confirmationNumber?: string; address?: string; notes: string;
   ticketUrl?: string; reservationUrl?: string; ticketImage?: string; cancellationNotes?: string;
 }
+export interface ShoppingItem {id:string;name:string;brand:string;category:string;status:'selected'|'to-buy'|'bought';whereToBuy:string;notes:string;placeIds:string[]}
 export interface LocalState {
-  version: 1;
+  version: 1; contentRevision?: number;
+  placeEdits: Record<string, Partial<Place>>; shoppingItems: ShoppingItem[];
   itemEdits: Record<string, Partial<ItineraryItem>>;
   addedItems: ItineraryItem[]; addedPlaces: Place[];
   progress: Record<string, Progress>; favorite: Record<string, boolean>; visited: Record<string, boolean>;

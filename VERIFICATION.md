@@ -64,3 +64,12 @@
 - 真实 iPhone 定位和 Google Maps 原生 App 跳转未实测；坐标缺失地点继续保留名称/地址导航。
 - 最终 `npm run build` 成功，TypeScript 无错误；已刷新到最终离线缓存版本。28 日酒店行的上一站距离以 Atocha 为起点。
 - 英文及 320px 窄屏无横向溢出，公寓预订卡和收藏卡地址一致，控制台无错误。
+
+## 2026-10-10 — Unified saved places and shopping list
+
+- 25 automated tests passed: old local backups, restaurant notes, wishlist independence, linked products, accommodation edits, optional route exclusion and fixed booking anchors.
+- Production build and TypeScript check passed; no new dependencies.
+- Browser at 390 × 844: Grocery filter retained daily route and showed three saved grocery markers; apartment home base address displayed correctly for Oct 25.
+- Product note, linked Condis location and bought status survived page reload on isolated 127.0.0.1 preview origin. User localhost storage was not modified for testing.
+- English shopping interface displayed; personal note stayed unchanged. Browser batch update rejected moving booked Palau from Oct 24; read-back confirmed its original day and fixed status. No browser console errors.
+- Unverified/multi-venue places remain listed without invented coordinates. Native iPhone location permission and walking directions were not exercised.

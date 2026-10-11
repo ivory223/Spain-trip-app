@@ -1,5 +1,5 @@
-import { placeCoordinates } from '@/data/coordinates';
 import { places as originalPlaces } from '@/data/places';
+import { placeCoordinates } from '@/data/coordinates';
 import { placeQuery } from './itinerary';
 import type { ItineraryItem, LocalState, Place, Progress } from './types';
 export type Point = [number,number];
@@ -9,8 +9,7 @@ export function validPoint(value:unknown):value is Point {
 }
 export function placePoint(place:Place):Point|undefined {
  const original=originalPlaces.find(p=>p.id===place.id);
- // An edited address must never retain a pin at the old location.
- if(original&&(place.address!==original.address||place.googleMapsQuery!==original.googleMapsQuery))return;
+ if(original&&((original.address||'')!==(place.address||'')||(original.googleMapsQuery||'')!==(place.googleMapsQuery||''))&&original.latitude===place.latitude&&original.longitude===place.longitude)return;
  const point=[place.latitude,place.longitude];return validPoint(point)?point:undefined;
 }
 export function routeStops(items:ItineraryItem[],places:Place[],state:LocalState):RouteStop[] {
@@ -25,13 +24,13 @@ export function routeSegments(stops:RouteStop[],departure?:Place) {
  const segments:{from:RouteStop;to:RouteStop;gap:boolean}[]=[];
  let previous:RouteStop|undefined,gap=false;
  for(const stop of stops){
-  if(stop.progress==='skipped')continue;
+  if(stop.progress==='skipped'||(stop.item.priority==='optional'&&!stop.item.fixed))continue;
   if(!stop.point){gap=true;continue;}
   if(previous)segments.push({from:previous,to:stop,gap});
   if(stop.arrivalPoint){const arrival={...stop,point:stop.arrivalPoint};segments.push({from:stop,to:arrival,gap:false});previous=arrival;}else previous=stop;gap=false;
  }
- const origin=departure&&placePoint(departure),first=stops.find(s=>s.point&&s.progress!=='skipped');
- if(origin&&first&&distanceMeters(origin,first.point!)>1)segments.unshift({from:{...first,point:origin},to:first,gap:stops.slice(0,stops.indexOf(first)).some(s=>!s.point&&s.progress!=='skipped')});
+ const origin=departure&&placePoint(departure),first=stops.find(s=>s.point&&s.progress!=='skipped'&&(s.item.priority!=='optional'||s.item.fixed));
+ if(origin&&first&&distanceMeters(origin,first.point!)>1)segments.unshift({from:{...first,point:origin},to:first,gap:stops.slice(0,stops.indexOf(first)).some(s=>!s.point&&s.progress!=='skipped'&&(s.item.priority!=='optional'||s.item.fixed))});
  return segments;
 }
 export function distanceMeters(a:Point,b:Point):number {
@@ -48,7 +47,7 @@ function distanceToSegment(point:Point,a:Point,b:Point) {
 }
 export function nearbyPlaces(places:Place[],stops:RouteStop[],radius=800):Place[] {
  const used=new Set(stops.map(s=>s.item.placeId));
- const points=stops.filter(s=>s.point&&s.progress!=='skipped').map(s=>s.point!);
+ const points=stops.filter(s=>s.point&&s.progress!=='skipped'&&(s.item.priority!=='optional'||s.item.fixed)).map(s=>s.point!);
  // A cross-city train / airport line is not a walkable shopping corridor.
  const segments=routeSegments(stops).filter(s=>!s.gap&&distanceMeters(s.from.point!,s.to.point!)<=5000);
  return places.filter(place=>{

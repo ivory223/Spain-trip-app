@@ -3,6 +3,9 @@ import type { Point } from '@/lib/route-map';
 // Area points represent a beach/airport/streetscape, not a terminal or entrance.
 // Ambiguous addresses have no coordinate. Sources are retained for review.
 export const placeCoordinates:Record<string,{point:Point;source:string;area?:boolean}> = {
+ sessun:{point:[41.3904561,2.1650268],source:"https://www.openstreetmap.org/node/6357924078"},
+ eseoese:{point:[41.3920976,2.1617215],source:"https://www.openstreetmap.org/node/6123758692"},
+ "bargain-garden":{point:[41.3906569,2.189988],source:"https://www.openstreetmap.org/node/12074283952"},
   "hilton-bcn": {
     "point": [
       41.3886867,
@@ -222,5 +225,54 @@ export const placeCoordinates:Record<string,{point:Point;source:string;area?:boo
       -3.6889703
     ],
     "source": "https://www.openstreetmap.org/way/733993037"
+  },
+  "grocery-concepcio": {
+    "point": [
+      41.3958835,
+      2.1686308
+    ],
+    "source": "https://www.openstreetmap.org/way/176206668"
+  },
+  "grocery-veritas": {
+    "point": [
+      41.4017446,
+      2.1669113
+    ],
+    "source": "https://www.openstreetmap.org/node/11635197681"
+  },
+  "grocery-condis": {
+    "point": [
+      41.396857,
+      2.1704726
+    ],
+    "source": "https://www.openstreetmap.org/node/13059373602"
+  },
+  "camper": {
+    "point": [
+      41.392762,
+      2.1632215
+    ],
+    "source": "https://www.openstreetmap.org/node/5915698088"
+  },
+  "indi-cold": {
+    "point": [
+      41.392088,
+      2.1627065
+    ],
+    "source": "https://www.openstreetmap.org/node/11291344954"
+  },
+  "skfk": {
+    "point": [
+      41.4034062,
+      2.1574284
+    ],
+    "source": "https://www.openstreetmap.org/node/10763878207"
+  },
+  "bimba": {
+    "point": [
+      41.3896894,
+      2.1351095
+    ],
+    "source": "https://www.openstreetmap.org/node/11048677998"
   }
 };

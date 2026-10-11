@@ -6,21 +6,25 @@ import { Baby, BedDouble, Check, ChevronRight, LocateFixed, Maximize, Navigation
 import { Sheet } from './editor';
 import { useLocale } from '@/lib/language';
 import { bookingLabels, mapsUrl, placeQuery, priorityLabels } from '@/lib/itinerary';
-import { distanceMeters, markerGroups, nearbyPlaces, placePoint, routeSegments, routeStops, type Point, type RouteStop } from '@/lib/route-map';
+import { distanceMeters, markerGroups, placePoint, routeSegments, routeStops, type Point, type RouteStop } from '@/lib/route-map';
 import { categoryLabels } from '@/data/places';
-import type { BookingStatus, ItineraryItem, LocalState, Place, TripDay } from '@/lib/types';
+import type { Category, BookingStatus, ItineraryItem, LocalState, Place, TripDay } from '@/lib/types';
 
-type Props={day:TripDay;items:ItineraryItem[];places:Place[];state:LocalState;nextId?:string;home?:Place;departure?:Place;homeStatus?:BookingStatus;visibleIds:string[];tired:boolean;preview:boolean;onToggleTired:()=>void;onToggleRemi:()=>void;onViewItem:(id:string)=>void};
-const categoryGlyph={food:'◒',shopping:'◇',vintage:'✧',kids:'✳',markets:'▤',hotels:'⌂',transport:'↔',attractions:'•'};
-export default function DailyRouteMap({day,items,places,state,nextId,home:hotel,departure,homeStatus,visibleIds,tired,preview,onToggleTired,onToggleRemi,onViewItem}:Props){
+type Props={day:TripDay;items:ItineraryItem[];places:Place[];state:LocalState;nextId?:string;home?:Place;departure?:Place;homeStatus?:BookingStatus;visibleIds:string[];tired:boolean;preview:boolean;onToggleTired:()=>void;onToggleRemi:()=>void;onEditPlace:(place:Place)=>void;onAssignPlace:(place:Place)=>void;onViewItem:(id:string)=>void};
+const categoryGlyph={food:'◒',shopping:'◇',vintage:'✧',kids:'✳',markets:'▤',grocery:'▥',events:'☆',hotels:'⌂',transport:'↔',attractions:'•'};
+export default function DailyRouteMap({day,items,places,state,nextId,home:hotel,departure,homeStatus,visibleIds,tired,preview,onToggleTired,onToggleRemi,onEditPlace,onAssignPlace,onViewItem}:Props){
  const {t,language,display}=useLocale();
  const container=useRef<HTMLDivElement>(null),frame=useRef<HTMLDivElement>(null),map=useRef<L.Map|null>(null);
- const [loaded,setLoaded]=useState(false),[showNearby,setShowNearby]=useState(false),[selected,setSelected]=useState<string|null>(null),[selectedPlace,setSelectedPlace]=useState<Place|null>(null);
+ const [loaded,setLoaded]=useState(false),[showNearby,setShowNearby]=useState(true),[selected,setSelected]=useState<string|null>(null),[selectedPlace,setSelectedPlace]=useState<Place|null>(null);
  const [tileError,setTileError]=useState(false),[locationError,setLocationError]=useState(''),[locating,setLocating]=useState(false);
  const [position,setPosition]=useState<{point:Point;accuracy:number}|null>(null);
  const watch=useRef<number|null>(null),centerOnFix=useRef(false);
+ const [category,setCategory]=useState<Category|'all'>('all'),[bounds,setBounds]=useState<L.LatLngBounds|null>(null);
+ const saved=places.filter(p=>category==='all'||p.category===category||(category==='shopping'&&p.category==='vintage'));
+ const inView=saved.filter(p=>{const point=placePoint(p);return point&&bounds?.contains(point);});
+ const unlocated=saved.filter(p=>!placePoint(p));
  const stops=useMemo(()=>routeStops(items,places,state).filter(s=>visibleIds.includes(s.item.id)),[items,places,state,visibleIds]);
- const nearby=useMemo(()=>showNearby?nearbyPlaces(places,stops):[],[showNearby,places,stops]);
+ const nearby=showNearby?saved.filter(p=>!stops.some(s=>s.item.placeId===p.id)&&p.id!==hotel?.id&&p.id!==departure?.id):[];
  const current=stops.find(s=>s.item.id===selected);
  const currentPlace=places.find(p=>p.id===current?.item.placeId);
  const hotelPoint=hotel&&placePoint(hotel);
@@ -30,11 +34,12 @@ export default function DailyRouteMap({day,items,places,state,nextId,home:hotel,
  const name=(item:ItineraryItem)=>language==='en'?item.title:item.titleZh||item.title;
  const placeName=(place:Place)=>language==='en'?place.name:place.nameZh||place.name;
  const pinName=(stop:RouteStop)=>{
+  if(stop.item.category==='grocery')return name(stop.item);
   const place=places.find(p=>p.id===stop.item.placeId);
   return place?placeName(place):name(stop.item);
  };
  const fit=()=>{
-  const points=stops.filter(s=>s.progress!=='skipped').flatMap(s=>[s.point,s.arrivalPoint].filter((p):p is Point=>!!p));
+  const points=stops.filter(s=>s.progress!=='skipped'&&(s.item.priority!=='optional'||s.item.fixed)).flatMap(s=>[s.point,s.arrivalPoint].filter((p):p is Point=>!!p));
   if(!points.length)points.push(...stops.filter(s=>s.point).map(s=>s.point!));
   for(const base of bases){const point=placePoint(base);if(point)points.push(point);}
   if(points.length)map.current?.fitBounds(L.latLngBounds(points),{padding:[45,60],maxZoom:15,animate:false});
@@ -49,6 +54,7 @@ export default function DailyRouteMap({day,items,places,state,nextId,home:hotel,
   if(!container.current)return;
   const instance=L.map(container.current,{zoomControl:false,scrollWheelZoom:false,attributionControl:true});map.current=instance;
   instance.setView([41.392,2.165],12);
+  instance.on('moveend',()=>setBounds(instance.getBounds()));setBounds(instance.getBounds());
   L.control.zoom({position:'bottomright',zoomInTitle:t('放大地图'),zoomOutTitle:t('缩小地图')}).addTo(instance);
   L.control.scale({position:'bottomleft',imperial:false}).addTo(instance);
   // Normal browser tile caching only. Never prefetch or put OSM tiles in the PWA cache.
@@ -78,7 +84,7 @@ export default function DailyRouteMap({day,items,places,state,nextId,home:hotel,
   for(const group of markerGroups(stops)){
    const root=document.createElement('div');root.className='route-pin-group';
    for(const stop of group){
-    const button=document.createElement('button');button.type='button';button.className=`route-pin ${state.remiMode&&stop.item.childFriendly?'family':''} ${stop.item.priority} ${stop.item.category} ${stop.progress||''} ${stop.item.id===selected?'selected':''} ${stop.item.id===nextId?'next':''}`;
+    const button=document.createElement('button');button.type='button';button.className=`route-pin ${state.remiMode&&stop.item.childFriendly?'family':''} ${stop.item.fixed?'must':stop.item.priority} ${stop.item.category} ${stop.progress||''} ${stop.item.id===selected?'selected':''} ${stop.item.id===nextId?'next':''}`;
     button.setAttribute('aria-label',`${stop.number}. ${pinName(stop)} · ${stop.progress?t(stop.progress==='completed'?'已完成':'已跳过'):t(priorityLabels[stop.item.priority])}`);
     button.setAttribute('data-stop-id',stop.item.id);
     const face=document.createElement('span');face.className='pin-face';face.textContent=String(stop.number);button.append(face);
@@ -93,7 +99,7 @@ export default function DailyRouteMap({day,items,places,state,nextId,home:hotel,
   const addPlaceMarker=(place:Place,home=false,arrival=false)=>{
    const point=placePoint(place);if(!point)return;
    const button=document.createElement('button');button.type='button';button.className=home?'context-hotel':arrival?'context-transport':'nearby-pin';
-   button.setAttribute('aria-label',`${home?baseLabel(place):t(arrival?'到达车站':'顺路收藏')} · ${t(categoryLabels[place.category])} · ${placeName(place)}`);
+   button.setAttribute('aria-label',`${home?baseLabel(place):t(arrival?'到达车站':'收藏地点库')} · ${t(categoryLabels[place.category])} · ${placeName(place)}`);
    const face=document.createElement('span');face.textContent=home?'⌂':arrival?'↔':categoryGlyph[place.category];button.append(face);
    button.addEventListener('click',()=>focusPlace(place));
    const marker=L.marker(point,{keyboard:false,icon:L.divIcon({html:button,className:'route-div-icon',iconSize:[44,44],iconAnchor:[22,22]}),zIndexOffset:home?300:100}).addTo(layer);
@@ -103,7 +109,7 @@ export default function DailyRouteMap({day,items,places,state,nextId,home:hotel,
   bases.filter(p=>!stops.some(s=>s.item.placeId===p.id)).forEach(p=>addPlaceMarker(p,true));
   stops.filter(s=>s.progress!=='skipped'&&s.arrival&&s.arrivalPoint&&!stops.some(other=>other.item.placeId===s.arrival!.id)).forEach(s=>addPlaceMarker(s.arrival!,false,true));
   return()=>{layer.remove();};
- },[loaded,stops,nearby,language,selected,nextId,hotel,departure,state.remiMode]);
+ },[loaded,stops,nearby,language,selected,nextId,hotel,departure,state.remiMode,category]);
  useEffect(()=>{
   if(!loaded||!map.current||!position)return;
   const group=L.layerGroup().addTo(map.current);
@@ -136,15 +142,17 @@ export default function DailyRouteMap({day,items,places,state,nextId,home:hotel,
  return <section className="daily-route" aria-label={t('每日路线地图')}>
   <div className="route-heading"><div><span className="eyebrow">{t('今天都去哪？')}</span><h2>{day.city}</h2></div><span className="route-count">{stops.length} {t('站')} · {stops.filter(s=>s.progress==='completed').length} {t('已完成')}</span></div>
   <div className="map-family-controls"><button aria-pressed={state.remiMode} onClick={onToggleRemi}><Baby size={16}/> Remi Mode</button><button aria-pressed={tired} onClick={onToggleTired}>{t(tired?'查看完整一天':'Remi 累了')}</button>{tired&&hotel&&<a className="home-return" href={mapsUrl(placeQuery(hotel))} target="_blank" rel="noopener noreferrer"><BedDouble size={16}/>{t('回住处')}</a>}</div>
+  <p className="field-help">{t('筛选收藏地点；当天行程始终显示。')}</p><div className="filter-strip map-category-filter" aria-label={t('地图类别筛选')}><button className={category==='all'?'active':''} onClick={()=>setCategory('all')}>{t('全部收藏')}</button>{Object.entries(categoryLabels).map(([id,label])=><button key={id} className={category===id?'active':''} onClick={()=>setCategory(id as Category)}>{t(label)}</button>)}</div>
   <div className="route-frame" ref={frame}>
    <div ref={container} className="route-canvas" role="region" aria-label={t('可缩放的每日路线地图')}/>
-   <div className="map-top-controls"><label className="nearby-toggle"><input type="checkbox" checked={showNearby} onChange={e=>setShowNearby(e.target.checked)}/>{t('显示顺路收藏')}</label><button className="map-control" onClick={fit} aria-label={t('显示今日路线')} title={t('显示今日路线')}><Maximize size={19}/></button></div>
+   <div className="map-top-controls"><label className="nearby-toggle"><input type="checkbox" checked={showNearby} onChange={e=>setShowNearby(e.target.checked)}/>{t('显示收藏地点')}</label><button className="map-control" onClick={fit} aria-label={t('显示今日路线')} title={t('显示今日路线')}><Maximize size={19}/></button></div>
    <button className="map-locate" onClick={locate} disabled={locating}><LocateFixed size={18}/>{t(locating?'正在定位…':'回到我的位置')}</button>
    {tileError&&<p className="tile-notice" role="status">{t('底图暂不可用，路线与列表仍可查看。')}</p>}
   </div>
-  <div className="map-caption"><span><i className="route-line-key"/>{t('连线仅示意顺序，非实际导航路线')}</span><span><i className="optional-key"/>{t('可选')}</span><span><BedDouble size={13}/>{t('住宿')}</span><span><TrainFront size={13}/>{t('交通')}</span></div>
+  <div className="map-caption"><span><i className="route-line-key"/>{t('连线仅示意主要行程顺序；可选地点不连线，实际路线请用导航')}</span><span><i className="optional-key"/>{t('可选')}</span><span><BedDouble size={13}/>{t('住宿')}</span><span><TrainFront size={13}/>{t('交通')}</span></div>
   {locationError&&<p className="route-message" role="status">{t(locationError)}</p>}
-  {showNearby&&<p className="route-message" role="status">{t('今日路线约 800 米内的已保存地点')} · {nearby.length} {t('个地点')}</p>}
+  {showNearby&&<details className="map-saved-list"><summary>{t('当前地图范围的收藏')} · {inView.length}</summary><p className="field-help">{t('拖动地图寻找收藏；保存地点不会自动添加到行程。')}</p>{inView.map(place=><button key={place.id} onClick={()=>focusPlace(place)}><span>{categoryGlyph[place.category]} {placeName(place)}</span><small>{t(categoryLabels[place.category])}</small></button>)}{!inView.length&&<p>{t('此范围暂无已定位的收藏，可缩小地图查看。')}</p>}</details>}
+  {showNearby&&unlocated.length>0&&<details className="map-saved-list"><summary>{t('待补坐标的收藏')} · {unlocated.length}</summary><p className="field-help">{t('这些地点仍在收藏中，可按名称导航或编辑坐标。')}</p>{unlocated.map(place=><button key={place.id} onClick={()=>focusPlace(place)}>{placeName(place)}<small>{t('位置待补充')}</small></button>)}</details>}
   <div className="route-list-heading"><h3>{t('今日路线')}</h3><span>{t('与行程顺序同步')}</span></div>
   {missing>0&&<p className="route-message">{missing} {t('站位置待补充，保留原编号')}</p>}
   {!stops.length&&<div className="empty"><Route size={28}/><p>{t('这一天还没有活动，先到行程里添加。')}</p></div>}
@@ -153,18 +161,18 @@ export default function DailyRouteMap({day,items,places,state,nextId,home:hotel,
    const previous=stops[index-1];const previousPoint=previous?.arrivalPoint||previous?.point;const distance=stop.point&&previousPoint?distanceMeters(previousPoint,stop.point):null;
    return <li key={stop.item.id} className={`route-stop ${stop.progress||''} ${stop.item.id===nextId?'next':''}`} data-testid={`route-stop-${stop.item.id}`}>
     <button onClick={()=>focusStop(stop,true)} aria-label={`${stop.number}. ${pinName(stop)} · ${t('查看地图站点')}`}>
-     <span className={`list-number ${stop.item.priority}`}>{stop.number}</span>
-     <span className="stop-copy"><span className="stop-title">{pinName(stop)}{stop.item.id===nextId&&<em>{t(preview?'首个未完成':'下一站')}</em>}</span><span className="stop-priority">{t(priorityLabels[stop.item.priority])}</span><span className="stop-meta">{stop.item.startTime||t('时间待定')}{display(stop.item,'duration')?' · '+display(stop.item,'duration'):''}{!stop.point?' · '+t('位置待补充'):stop.area?' · '+t('区域参考点'):''}</span>{state.remiMode&&<span className="stop-family">{[stop.item.childFriendly&&t('适合 Remi'),stop.item.strollerFriendly&&t('推车友好'),stop.item.indoor&&t('室内')].filter(Boolean).join(' · ')}</span>}{stop.arrival&&<span className="stop-context">↔ {t('到达车站')} · {placeName(stop.arrival)}</span>}{display(stop.item,'walkingContext')&&<span className="stop-context">{display(stop.item,'walkingContext')}</span>}{distance!==null&&distance>30&&<span className="stop-distance">{t('距上一站直线约')} {distance<1000?`${Math.round(distance/10)*10} m`:`${(distance/1000).toFixed(1)} km`}</span>}</span>
+     <span className={`list-number ${stop.item.fixed?'must':stop.item.priority}`}>{stop.number}</span>
+     <span className="stop-copy"><span className="stop-title">{pinName(stop)}{stop.item.id===nextId&&<em>{t(preview?'首个未完成':'下一站')}</em>}</span><span className="stop-priority">{stop.item.fixed?t('已预订 · 固定'):t(priorityLabels[stop.item.priority])}</span><span className="stop-meta">{stop.item.startTime||t('时间待定')}{display(stop.item,'duration')?' · '+display(stop.item,'duration'):''}{!stop.point?' · '+t('位置待补充'):stop.area?' · '+t('区域参考点'):''}</span>{state.remiMode&&<span className="stop-family">{[stop.item.childFriendly&&t('适合 Remi'),stop.item.strollerFriendly&&t('推车友好'),stop.item.indoor&&t('室内')].filter(Boolean).join(' · ')}</span>}{stop.arrival&&<span className="stop-context">↔ {t('到达车站')} · {placeName(stop.arrival)}</span>}{display(stop.item,'walkingContext')&&<span className="stop-context">{display(stop.item,'walkingContext')}</span>}{distance!==null&&distance>30&&<span className="stop-distance">{t('距上一站直线约')} {distance<1000?`${Math.round(distance/10)*10} m`:`${(distance/1000).toFixed(1)} km`}</span>}</span>
      <span className="stop-state">{stop.progress==='completed'?<Check size={18} aria-label={t('已完成')}/>:stop.progress==='skipped'?<SkipForward size={18} aria-label={t('已跳过')}/>:<ChevronRight size={18}/>}</span>
     </button>
    </li>;
   })}</ol>
   {current&&<Sheet className="route-sheet" title={`${current.number}. ${currentPlace?.name||current.item.title}`} description={language==='zh'?(currentPlace?.nameZh||current.item.titleZh||t('今日路线')):(display(current.item,'timeNote')||t('今日路线'))} onClose={()=>setSelected(null)}>
-   <div className="route-sheet-meta"><span className="badge">{t(priorityLabels[current.item.priority])}</span><strong>{current.item.startTime||t('时间待定')}</strong>{display(current.item,'duration')&&<span>{t('预计停留')} · {display(current.item,'duration')}</span>}<span className={`badge status-${current.item.bookingStatus}`}>{t(bookingLabels[current.item.bookingStatus])}</span>{current.progress&&<span className="badge">{t(current.progress==='completed'?'已完成':'已跳过')}</span>}</div>
+   <div className="route-sheet-meta"><span className="badge">{current.item.fixed?t('已预订 · 固定'):t(priorityLabels[current.item.priority])}</span><strong>{current.item.startTime||t('时间待定')}</strong>{display(current.item,'duration')&&<span>{t('预计停留')} · {display(current.item,'duration')}</span>}<span className={`badge status-${current.item.bookingStatus}`}>{t(bookingLabels[current.item.bookingStatus])}</span>{current.progress&&<span className="badge">{t(current.progress==='completed'?'已完成':'已跳过')}</span>}</div>
    {currentPlace?.category==='hotels'&&<p className="route-sheet-context">{currentPlace.address||display(currentPlace,'neighborhood')}</p>}{current.area&&<p className="route-message">{t('区域参考点，不代表具体入口。')}</p>}{!current.point&&<p className="route-message">{t('位置待补充；可查看行程或用名称导航。')}</p>}
    {display(current.item,'walkingContext')&&<p className="route-sheet-context">{display(current.item,'walkingContext')}</p>}
    <div className="route-sheet-actions">{navLink(current.item)&&<a className="primary-button" href={mapsUrl(navLink(current.item)!)} target="_blank" rel="noopener noreferrer"><Navigation size={17}/>{t(currentPlace?.category==='hotels'?'回住处':'导航')}</a>}<button className="outline-button" onClick={()=>onViewItem(current.item.id)}><Route size={17}/>{t('查看行程')}</button></div>
   </Sheet>}
-  {selectedPlace&&<Sheet className="route-sheet" title={selectedPlace.name} description={selectedPlace.category==='hotels'?baseLabel(selectedPlace):placeName(selectedPlace)} onClose={()=>setSelectedPlace(null)}>{selectedPlace.address&&<p className="route-sheet-address">{selectedPlace.address}</p>}{selectedPlace.id===hotel?.id&&homeStatus&&<span className="badge">{t(bookingLabels[homeStatus])}</span>}<p className="route-message">{t(categoryLabels[selectedPlace.category])} · {display(selectedPlace,'neighborhood')}</p>{display(selectedPlace,'notes')&&<p className="route-sheet-context">{display(selectedPlace,'notes')}</p>}<a className="primary-button" href={mapsUrl(placeQuery(selectedPlace))} target="_blank" rel="noopener noreferrer"><Navigation size={17}/>{t(selectedPlace.category==='hotels'?'回住处':'导航')}</a>{selectedPlace.category==='hotels'&&<a className="home-google-link" href={mapsUrl(placeQuery(selectedPlace))} target="_blank" rel="noopener noreferrer">Google Maps ↗</a>}</Sheet>}
+  {selectedPlace&&<Sheet className="route-sheet" title={selectedPlace.name} description={selectedPlace.category==='hotels'?baseLabel(selectedPlace):placeName(selectedPlace)} onClose={()=>setSelectedPlace(null)}>{selectedPlace.address&&<p className="route-sheet-address">{selectedPlace.address}</p>}{selectedPlace.openingHours&&<p className="route-message">{t('营业时间')} · {display(selectedPlace,'openingHours')}</p>}{selectedPlace.id===hotel?.id&&homeStatus&&<span className="badge">{t(bookingLabels[homeStatus])}</span>}<p className="route-message">{t(categoryLabels[selectedPlace.category])} · {display(selectedPlace,'neighborhood')}</p>{display(selectedPlace,'notes')&&<p className="route-sheet-context">{display(selectedPlace,'notes')}</p>}<a className="primary-button" href={mapsUrl(placeQuery(selectedPlace))} target="_blank" rel="noopener noreferrer"><Navigation size={17}/>{t(selectedPlace.category==='hotels'?'回住处':'导航')}</a>{selectedPlace.category==='hotels'&&<a className="home-google-link" href={mapsUrl(placeQuery(selectedPlace))} target="_blank" rel="noopener noreferrer">Google Maps ↗</a>}<div className="route-sheet-actions"><button className="outline-button" onClick={()=>{onEditPlace(selectedPlace);setSelectedPlace(null);}}>{t('编辑地点')}</button><button className="outline-button" disabled={selectedPlace.availability==='unavailable'} onClick={()=>{onAssignPlace(selectedPlace);setSelectedPlace(null);}}>{t('安排到某一天')}</button></div></Sheet>}
  </section>;
 }

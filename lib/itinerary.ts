@@ -1,9 +1,10 @@
+import { shoppingItems } from '@/data/shopping';
 import type { Booking, ItineraryItem, LocalState, Place, TripDay } from './types';
 export const STORAGE_KEY = 'spain-journal:v1';
 export const bookingLabels = { booked:'已预订', 'need-to-book':'待预订', 'sold-out':'已售罄', 'no-reservation':'无需预约', tbd:'待确认' };
 export const priorityLabels = { must:'MUST · 必去', recommended:'推荐', optional:'可选' };
 export function emptyState(): LocalState {
- return {version:1,itemEdits:{},addedItems:[],addedPlaces:[],progress:{},favorite:{},visited:{},placeNotes:{},bookingEdits:{},order:{},checks:{},remiMode:false};
+ return {version:1,contentRevision:1,placeEdits:{},shoppingItems:shoppingItems.map(i=>({...i,placeIds:[...i.placeIds]})),itemEdits:{},addedItems:[],addedPlaces:[],progress:{},favorite:{},visited:{},placeNotes:{},bookingEdits:{},order:{},checks:{},remiMode:false};
 }
 const record = (value:unknown): value is Record<string,unknown> => !!value && typeof value==='object' && !Array.isArray(value);
 export function parseState(raw:string): LocalState {
@@ -23,7 +24,21 @@ export function parseState(raw:string): LocalState {
  if (Object.values(value.progress as Record<string,unknown>).some(v=>v!=='completed'&&v!=='skipped')) throw new Error('进度数据无法读取');
  if (Object.values(value.placeNotes as Record<string,unknown>).some(v=>typeof v!=='string')) throw new Error('笔记数据无法读取');
  if (typeof value.remiMode!=='boolean') throw new Error('偏好数据无法读取');
+ if(value.placeEdits!==undefined&&(!record(value.placeEdits)||Object.values(value.placeEdits).some(v=>!record(v))))throw new Error('地点数据无法读取');
+ if(value.shoppingItems!==undefined&&(!Array.isArray(value.shoppingItems)||value.shoppingItems.some(i=>!record(i)||['id','name','brand','category','whereToBuy','notes'].some(k=>typeof i[k]!=='string')||!['selected','to-buy','bought'].includes(String(i.status))||!Array.isArray(i.placeIds)||i.placeIds.some(id=>typeof id!=='string'))))throw new Error('购物清单无法读取');
  const restored={...base,...value} as LocalState;
+ // Upgrade only superseded booking defaults once; retain personal notes and ticket details.
+ if(value.contentRevision===undefined){
+  for(const id of ['activity-palau','train-madrid']){
+   if(restored.bookingEdits[id]?.status==='need-to-book')delete restored.bookingEdits[id].status;
+  }
+  for(const id of ['24-palau','28-train']){
+   if(restored.itemEdits[id]?.bookingStatus==='need-to-book')delete restored.itemEdits[id].bookingStatus;
+  }
+  const order=restored.order['2026-10-25'];
+  if(order?.includes('25-checkout')&&!order.includes('25-grocery'))order.splice(order.indexOf('25-checkout')+1,0,'25-grocery');
+  restored.contentRevision=1;
+ }
  // Remove only known obsolete seed text from old form saves; preserve personal edits and notes.
  for(const edit of Object.values(restored.itemEdits)){
   if(edit.googleMapsQuery==='Central Family Apartment 31 Barcelona')delete edit.googleMapsQuery;
@@ -44,14 +59,15 @@ export function countdown(now:Date,startDate:string) {
 export function mapsUrl(query:string) { return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`; }
 export function placeQuery(place:Place) {
  if(place.googleMapsQuery)return place.googleMapsQuery;
- const city=place.neighborhood.includes('Madrid')?'Madrid':place.neighborhood.includes('Newark')?'Newark':'Barcelona';
+ const city=place.city||(place.neighborhood.includes('Madrid')?'Madrid':place.neighborhood.includes('Newark')?'Newark':'Barcelona');
  return [place.name,place.address||city].join(' ');
 }
 export function mergePlaces(base:Place[],state:LocalState,bookings:Booking[]):Place[] {
- return [...base,...state.addedPlaces].map(place=>{
+ return [...base,...state.addedPlaces].map(original=>{
+  const place={savedStatus:'wishlist' as const,city:original.neighborhood.includes('Madrid')?'Madrid':original.neighborhood.includes('Newark')?'Newark':'Barcelona',...original,...state.placeEdits[original.id]};
   const booking=bookings.find(b=>b.type==='hotels'&&b.placeId===place.id);
   const address=booking&&state.bookingEdits[booking.id]?.address;
-  return address&&address!==place.address?{...place,address,googleMapsQuery:`${place.name} ${address}`,latitude:undefined,longitude:undefined,needsVerification:false}:place;
+  return address&&address!==place.address?{...place,address,googleMapsQuery:`${place.name} ${address}`,latitude:null,longitude:null,needsVerification:false}:place;
  });
 }
 export function safeUrl(url?:string) {
@@ -65,7 +81,7 @@ export function mergeItems(base:ItineraryItem[], places:Place[], bookings:Bookin
   const place=places.find(p=>p.id===item.placeId);
   const booking=bookings.find(b=>b.id===item.bookingId);
   const inherited=place ? {neighborhood:place.neighborhood,address:place.address,childFriendly:place.childFriendly,strollerFriendly:place.strollerFriendly,napFriendly:place.napFriendly,indoor:place.indoor,bathrooms:place.bathrooms,freePlay:place.freePlay,bookingUrl:place.bookingUrl,googleMapsQuery:placeQuery(place),walkingContext:place.walkingContext} : {};
-  return {...inherited,...item,googleMapsQuery:item.googleMapsQuery||inherited.googleMapsQuery,address:item.address||inherited.address,...(booking?{bookingStatus:booking.status,confirmationNumber:booking.confirmationNumber,ticketUrl:booking.ticketUrl||item.ticketUrl}:{}),...(state.bookingEdits[item.bookingId||'']?.time!==undefined ? {startTime:booking?.time} : {})};
+  return {...inherited,...item,googleMapsQuery:item.googleMapsQuery||inherited.googleMapsQuery,address:item.address||inherited.address,fixed:(booking?.status||item.bookingStatus)==='booked',...(booking?{bookingStatus:booking.status,confirmationNumber:booking.confirmationNumber,ticketUrl:booking.ticketUrl||item.ticketUrl}:{}),...(state.bookingEdits[item.bookingId||'']?.time!==undefined ? {startTime:booking?.time} : {})};
  });
 }
 export function dayItems(items:ItineraryItem[], date:string, state:LocalState) {
@@ -85,8 +101,8 @@ export function nextActivity(items:ItineraryItem[], day:TripDay, state:LocalStat
 export function simpleDay(items:ItineraryItem[], day:TripDay, state:LocalState, now:Date) {
  const clock=localClock(now,day.timeZone);
  return items.filter(item=>!state.progress[item.id] && item.bookingStatus!=='sold-out' &&
-  (item.priority==='must' || (!item.demanding && (item.easy || item.category==='food' || (item.category==='shopping' && item.strollerFriendly)))) &&
-  (clock.date!==day.date || !item.startTime || (item.endTime||item.startTime)>=clock.time || item.priority==='must'));
+  (item.fixed || item.priority==='must' || (!item.demanding && (item.easy || item.category==='food' || (item.category==='shopping' && item.strollerFriendly)))) &&
+  (clock.date!==day.date || !item.startTime || (item.endTime||item.startTime)>=clock.time || item.priority==='must'||item.fixed));
 }
 export function changeItem(state:LocalState,item:ItineraryItem,patch:Partial<ItineraryItem>):LocalState {
  const bookingPatch:Partial<Booking>={};
@@ -105,7 +121,7 @@ export function changeBooking(state:LocalState,booking:Booking,patch:Partial<Boo
 }
 export function reorder(state:LocalState,items:ItineraryItem[],id:string,direction:-1|1):LocalState {
  const index=items.findIndex(item=>item.id===id), next=index+direction;
- if(index<0 || next<0 || next>=items.length) return state;
+ if(index<0 || next<0 || next>=items.length || items[index].fixed || items[next].fixed) return state;
  const order=items.map(item=>item.id); [order[index],order[next]]=[order[next],order[index]];
  return {...state,order:{...state.order,[items[index].date]:order}};
 }
@@ -116,4 +132,13 @@ export function accommodationForDate(date:string,bookings:Booking[],places:Place
  const tonight=stays.find(b=>b.date<=date&&date<b.endDate!);
  const previous=stays.find(b=>b.date<date&&date<=b.endDate!);
  return {home:places.find(p=>p.id===(tonight||previous)?.placeId),departure:places.find(p=>p.id===previous?.placeId)};
+}
+
+export function placeAssignments(placeId:string,items:ItineraryItem[]) {return items.filter(i=>i.placeId===placeId).map(i=>({id:i.id,date:i.date,time:i.startTime}));}
+export function placeReservation(place:Place,bookings:Booking[]) {return bookings.find(b=>b.placeId===place.id)?.status||place.bookingStatus||'tbd';}
+export function savePlace(state:LocalState,place:Place,bookings:Booking[]):LocalState {
+ const booking=bookings.find(b=>b.placeId===place.id);
+ if(booking)state={...state,bookingEdits:{...state.bookingEdits,[booking.id]:{...state.bookingEdits[booking.id],...(booking.type==='hotels'?{address:place.address}:{}),...(place.bookingStatus?{status:place.bookingStatus}:{})}}};
+ const previous=state.addedPlaces.find(p=>p.id===place.id);
+ return previous?{...state,addedPlaces:state.addedPlaces.map(p=>p.id===place.id?place:p)}:{...state,placeEdits:{...state.placeEdits,[place.id]:place}};
 }

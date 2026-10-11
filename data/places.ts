@@ -1,16 +1,17 @@
+import { additionalPlaces, placeUpdates } from './additional-places';
 import { placeCoordinates } from './coordinates';
 import type { Category, Place } from '@/lib/types';
-export const categoryLabels: Record<Category, string> = { attractions: '景点', food: '餐厅', shopping: '购物', vintage: 'Vintage', kids: '儿童', markets: '市场', hotels: '住宿', transport: '交通' };
+export const categoryLabels: Record<Category, string> = { attractions: '景点', food: '餐厅', shopping: '购物', vintage: 'Vintage', kids: '儿童', markets: '市场', grocery:'杂货与食品', events:'活动', hotels: '住宿', transport: '交通' };
 const seedPlaces: Place[] = [
   { id:'hilton-bcn', name:'Hilton Barcelona', nameZh:'巴塞罗那希尔顿', category:'hotels', neighborhood:'Les Corts', priority:'must', indoor:true, childFriendly:true, strollerFriendly:true, notes:'10/23 入住，10/25 退房，共 2 晚。提前入住以酒店确认为准。', googleMapsQuery:'Hilton Barcelona Avenida Diagonal', walkingContext:'抵达日的休息据点' },
-  { id:'apartment', name:'Central Family Apartment 31', nameZh:'家庭公寓', category:'hotels', neighborhood:'Eixample · Barcelona', address:'Carrer de Bailèn, 125, 08009 Barcelona, Catalunya, Spain', priority:'must', childFriendly:true, indoor:true, notes:'10/25–28，3 晚，已预订。入住时间、行李寄存和取钥匙方式待确认。', googleMapsQuery:'Carrer de Bailèn, 125, 08009 Barcelona, Spain' },
+  { id:'apartment', name:'Central Family Apartment 31', nameZh:'家庭公寓', category:'hotels', neighborhood:'Eixample · Barcelona', address:'Carrer de Bailèn, 125, 08009 Barcelona, Catalunya', priority:'must', childFriendly:true, indoor:true, notes:'10/25–28，3 晚，已预订。入住时间、行李寄存和取钥匙方式待确认。', googleMapsQuery:'Carrer de Bailèn, 125, 08009 Barcelona, Spain' },
   { id:'hilton-mad', name:'Hilton Madrid Airport', nameZh:'马德里机场希尔顿', category:'hotels', neighborhood:'Madrid · Airport', priority:'must', childFriendly:true, strollerFriendly:true, indoor:true, notes:'10/28 入住，10/29 退房。前往机场方式和班次向酒店确认。', walkingContext:'Atocha 抵达后打车前往' },
   { id:'ewr', name:'Newark Liberty International Airport', nameZh:'纽瓦克机场 EWR', category:'transport', neighborhood:'Newark', priority:'must', googleMapsQuery:'Newark Liberty International Airport' },
   { id:'bcn', name:'Barcelona El Prat Airport', nameZh:'巴塞罗那机场 BCN', category:'transport', neighborhood:'El Prat', priority:'must', walkingContext:'落地后打车，同行 3 大箱 + 推车；确认车型' },
   { id:'sants', name:'Barcelona Sants', nameZh:'巴塞罗那 Sants 车站', category:'transport', neighborhood:'Sants', priority:'must', strollerFriendly:true, walkingContext:'有大件行李，预留进站和安检时间' },
   { id:'atocha', name:'Madrid Puerta de Atocha', nameZh:'马德里 Atocha 车站', category:'transport', neighborhood:'Madrid · Atocha', priority:'must', walkingContext:'核对车票实际到达站后打车去酒店' },
   { id:'mad', name:'Adolfo Suárez Madrid–Barajas Airport', nameZh:'马德里机场 MAD', category:'transport', neighborhood:'Madrid · Barajas', priority:'must', notes:'核对航站楼；先完成所需海关验核，再托运退税商品。' },
-  { id:'palau', name:'Palau de la Música Catalana', nameZh:'加泰罗尼亚音乐宫', category:'kids', neighborhood:'Sant Pere / El Born', priority:'must', childFriendly:true, indoor:true, tags:['REMI'], bookingUrl:'https://www.palaumusica.cat/', notes:'Twinkle, Twinkle, Baby’s Star，0–5 岁。10/24 11:00 为候选场次，须向官方确认后购票。', walkingContext:'音乐宫 → Santa Caterina → Born，保持这条顺路路线' },
+  { id:'palau', name:'Palau de la Música Catalana', nameZh:'加泰罗尼亚音乐宫', category:'kids', neighborhood:'Sant Pere / El Born', priority:'must', childFriendly:true, indoor:true, tags:['REMI'], bookingUrl:'https://www.palaumusica.cat/', notes:'10/24 上午已订票，具体参观内容和入场时间以票面为准。', walkingContext:'音乐宫 → Santa Caterina → Born，保持这条顺路路线' },
   { id:'santa-caterina', name:'Mercat de Santa Caterina', nameZh:'圣卡特琳娜市场', category:'markets', neighborhood:'Sant Pere / El Born', priority:'must', indoor:true, childFriendly:true, strollerFriendly:true, walkingContext:'音乐宫之后，先逛市场再去 Born', notes:'下午关门前到；当日营业与摊位时间待确认。' },
   { id:'born', name:'Passeig del Born', nameZh:'漫步 El Born', category:'attractions', neighborhood:'El Born', priority:'recommended', childFriendly:true, strollerFriendly:true, napFriendly:true, indoor:false, walkingContext:'Santa Caterina → Santa Maria del Mar → Passeig del Born', notes:'老城地面可能颠簸；遇台阶选平缓路线。' },
   { id:'santa-maria', name:'Santa Maria del Mar', nameZh:'海洋圣母圣殿周边', category:'attractions', neighborhood:'El Born', priority:'optional', napFriendly:true, walkingContext:'Born 散步途中，外观即可' },
@@ -43,7 +44,7 @@ const seedPlaces: Place[] = [
   { id:'paradeta', name:'La Paradeta Sants', category:'food', neighborhood:'Sants', priority:'recommended', indoor:true, childFriendly:true, walkingContext:'若从 Poblenou 来需跨城交通；累了改就近吃', notes:'海鲜晚餐候选；核对营业和排队情况。' },
   { id:'palo-alto', name:'Palo Alto Market', category:'markets', neighborhood:'Poblenou', priority:'optional', availability:'unavailable', notes:'UNAVAILABLE DURING TRIP。按用户现有信息，10/23–28 似乎没有市集；保留原因，不排入行程。' },
 ];
-export const places:Place[]=seedPlaces.map(place=>({...place,latitude:placeCoordinates[place.id]?.point[0],longitude:placeCoordinates[place.id]?.point[1]}));
+export const places:Place[]=[...seedPlaces,...additionalPlaces].map(original=>{const place={...original,...placeUpdates[original.id]};return {...place,city:place.neighborhood.includes('Madrid')?'Madrid':place.neighborhood.includes('Newark')?'Newark':'Barcelona',savedStatus:'wishlist' as const,latitude:placeCoordinates[place.id]?.point[0],longitude:placeCoordinates[place.id]?.point[1]};});
 export const collections = [
   { title:'购物灵感', categories:['Barcelona independent designers','Vintage','Kids boutiques','Spanish brands'] },
   { title:'想吃什么', categories:['Paella','Seafood','Tapas','Chinese food','Coffee','Bakery','Market food'] },
