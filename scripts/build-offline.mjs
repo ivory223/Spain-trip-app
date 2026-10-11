@@ -20,7 +20,7 @@ self.addEventListener('fetch',event=>{
  const url=new URL(event.request.url);
  if(event.request.method!=='GET'||url.origin!==self.location.origin)return;
  if(event.request.mode==='navigate'){
-  // This is a single-route app; hashes select the four views.
+  // This is a single-route app; hashes select the five primary pages and More subpages.
   if(url.pathname==='/'||url.pathname==='/index.html')event.respondWith(caches.match('/').then(hit=>hit||fetch(event.request)));
   return;
  }

@@ -73,3 +73,11 @@
 - Product note, linked Condis location and bought status survived page reload on isolated 127.0.0.1 preview origin. User localhost storage was not modified for testing.
 - English shopping interface displayed; personal note stayed unchanged. Browser batch update rejected moving booked Palau from Oct 24; read-back confirmed its original day and fixed status. No browser console errors.
 - Unverified/multi-venue places remain listed without invented coordinates. Native iPhone location permission and walking directions were not exercised.
+
+## 2026-10-10 — Five-tab navigation
+
+- Production build and 26 tests passed. Routing regression covers the five primary hashes, nine More subpages and legacy links.
+- Rendered preview at 390 × 844 and 320 × 740 visibly shows exactly Trip, Map, Places, Shopping, More. At 320 px every tab lies inside the viewport; no horizontal document overflow.
+- Clicked and refreshed each primary route; URLs and active navigation remained correct. Shopping rendered the product list and More rendered all nine cards. Bookings is absent from the bottom navigation.
+- Clicked all nine More cards, confirmed page content and More as the active parent. Map loaded its interactive tiles and markers.
+- Online deployment verification is recorded separately after publishing.

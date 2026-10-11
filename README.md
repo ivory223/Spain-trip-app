@@ -114,3 +114,9 @@ iPhone：用 Safari 打开 HTTPS 正式网址 → 分享 → 添加到主屏幕�
 固定预订由有效 booking 状态计算，重排和浏览器批量修改不能移动已订活动；手动编辑仍允许用户修正自己的订单。10/25 入住后预留 60–90 分钟采购和安顿公寓，新增商店和三个活动均未自动加入日程。
 
 新增食品采购候选为 Bailèn 93 的 Condis、Concepció 市场、Sant Joan 144 的 Veritas；来源链接保存在地点内。Veritas 官方信息显示周日关闭，市场现行时间须复核，因此保留提前采购或选其他营业店铺的弹性。活动场地或商店分店未确定时不生成猜测坐标。
+
+## Five primary pages
+
+The rendered bottom navigation is exactly **Trip | Map | Places | Shopping | More** in both languages. Routes are `#trip`, `#map`, `#places`, `#shopping`, and `#more`; static-host refreshes resolve to the app shell. Legacy `#itinerary` and `#bookings` links still open Trip and More / Bookings.
+
+Shopping now renders its own product list page, independent of Places. More contains Bookings, Flights, Hotels, Train, Tickets, Tax Refund, Packing List, Travel Documents and Settings at `#more/<section>` routes. Bookings keeps the existing editor and saved references; category links filter the same booking data. Packing checks use the existing local state, tax checks share the trip checklist, and Settings exposes language, offline status and backup export.
